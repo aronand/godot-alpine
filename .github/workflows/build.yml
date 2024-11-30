@@ -26,13 +26,13 @@ jobs:
           key: ${{ env.CACHE_GODOT }}
       - name: Build Godot on Alpine chroot
         if: steps.cache-godot.outputs.cache-hit != 'true'
+        uses: jirutka/setup-alpine@v1
         run: |
-          git clone https://github.com/alpinelinux/alpine-chroot-install.git
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
-          sudo ./alpine-chroot-install/alpine-chroot-install
-          /alpine/enter-chroot apk add scons pkgconf clang libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libexecinfo-dev
-          /alpine/enter-chroot scons -C godot -j2 platform=server tools=yes target=release_debug use_llvm=yes LINKFLAGS=-lexecinfo
+          apk add scons pkgconf clang libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libexecinfo-dev
+          scons -C godot -j2 platform=server tools=yes target=release_debug use_llvm=yes LINKFLAGS=-lexecinfo
           cp godot/bin/godot_server.x11.opt.tools.64.llvm ${{ env.GODOT_FILENAME }}
+        shell: alpine.sh --root {0}
   release:
     if: github.event.inputs.release == 'true'
     needs: build
