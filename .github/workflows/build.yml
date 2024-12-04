@@ -12,7 +12,7 @@ on:
         description: 'Tag to set to Docker image; set to empty to not push to Docker Hub'
 env:
   CACHE_GODOT: cache_godot_${{ github.event.inputs.version }}
-  GODOT_FILENAME: godot
+  GODOT_FILENAME: godot/bin/godot
 run-name: ${{ github.workflow }} ${{ github.event.inputs.version }}
 
 jobs:
@@ -46,8 +46,8 @@ jobs:
             alsa-lib-dev \
             pulseaudio-dev
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
-          scons -C godot platform=linuxbsd production=yes
-          cp godot/bin/godot.linuxbsd.editor.x86_64 ${{ env.GODOT_FILENAME }}
+          scons -C godot platform=linuxbsd production=yes target=editor
+          mv godot/bin/godot.linuxbsd.editor.x86_64 ${{ env.GODOT_FILENAME }}
         shell: alpine.sh --root {0}
   release:
     if: github.event.inputs.release == 'true'
