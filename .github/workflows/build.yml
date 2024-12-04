@@ -54,7 +54,7 @@ jobs:
       - name: Zip Godot
         run: |
           cd godot/bin/
-          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }} ${{ env.GODOT_FILENAME }}
+          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}
           cd -
           mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
         shell: alpine.sh --root {0}
