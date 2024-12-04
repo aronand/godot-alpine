@@ -30,7 +30,7 @@ jobs:
       - name: Build Godot on Alpine chroot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
-          apk add \
+          apk add --no-cache \
             git \
             scons \
             pkgconf \
@@ -44,7 +44,8 @@ jobs:
             mesa-dev \
             eudev-dev \
             alsa-lib-dev \
-            pulseaudio-dev
+            pulseaudio-dev \
+            fontconfig-dev
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
           scons -C godot platform=linuxbsd production=yes target=editor
           mv godot/bin/godot.linuxbsd.editor.x86_64 ${{ env.GODOT_FILENAME }}
