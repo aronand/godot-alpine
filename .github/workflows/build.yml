@@ -62,7 +62,7 @@ jobs:
           path: ${{ env.GODOT_FILENAME }}
           key: ${{ env.CACHE_GODOT }}
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
           body: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
