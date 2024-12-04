@@ -12,7 +12,7 @@ on:
         description: 'Tag to set to Docker image; set to empty to not push to Docker Hub'
 env:
   CACHE_GODOT: cache_godot_${{ github.event.inputs.version }}
-  GODOT_FILENAME: godot/bin/godot
+  GODOT_FILENAME: godot
 run-name: ${{ github.workflow }} ${{ github.event.inputs.version }}
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ${{ env.GODOT_FILENAME }}
+          path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Set up latest Alpine Linux
         uses: jirutka/setup-alpine@v1
@@ -32,6 +32,7 @@ jobs:
         run: |
           apk add --no-cache \
             git \
+            zip \
             scons \
             pkgconf \
             gcc \
@@ -48,7 +49,14 @@ jobs:
             fontconfig-dev
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
           scons -C godot platform=linuxbsd production=yes target=editor
-          mv godot/bin/godot.linuxbsd.editor.x86_64 ${{ env.GODOT_FILENAME }}
+          mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
+        shell: alpine.sh --root {0}
+      - name: Zip Godot
+        run: |
+          cd godot/bin/
+          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }} ${{ env.GODOT_FILENAME }}
+          cd -
+          mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
         shell: alpine.sh --root {0}
   release:
     if: github.event.inputs.release == 'true'
@@ -59,7 +67,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ${{ env.GODOT_FILENAME }}
+          path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -67,7 +75,7 @@ jobs:
           name: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
           body: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
           tag_name: v${{ github.event.inputs.version }}
-          files: ${{ env.GODOT_FILENAME }}
+          files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
   # docker:
   #   if: github.event.inputs.docker_tag != ''
   #   needs: build
