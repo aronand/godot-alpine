@@ -46,7 +46,7 @@ jobs:
             pulseaudio-dev
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
           scons -C godot platform=linuxbsd production=yes
-          ls -a godot/bin/
+          cp godot/bin/godot.linuxbsd.editor.x86_64 ${{ env.GODOT_FILENAME }}
         shell: alpine.sh --root {0}
   release:
     if: github.event.inputs.release == 'true'
