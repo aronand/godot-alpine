@@ -93,6 +93,8 @@ jobs:
         with:
           path: ${{ env.GODOT_FILENAME }}
           key: ${{ env.CACHE_GODOT }}
+      - name: Unzip godot
+        run: unzip ./godot_${{ github.event.inputs.version }}.zip
       - name: Login
         run: docker login -u "$dockerhub_username" -p "$dockerhub_password"
       - name: Build container
