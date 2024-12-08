@@ -22,7 +22,7 @@ jobs:
       image: alpine:latest
     defaults:
       run:
-        shell: ash
+        shell: ash {0}
     steps:
       - name: Cache Godot
         id: cache-godot
