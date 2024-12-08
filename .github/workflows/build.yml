@@ -24,19 +24,22 @@ jobs:
       run:
         shell: ash {0}
     steps:
+      - name: Install utilities
+        run: |
+          apk add --no-cache \
+            git \
+            zip \
+            tar \
       - name: Cache Godot
         id: cache-godot
         uses: actions/cache@v4
         with:
           path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
-      - name: Build Godot
+      - name: Install dependencies
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           apk add --no-cache \
-            git \
-            zip \
-            tar \
             scons \
             pkgconf \
             gcc \
@@ -51,6 +54,9 @@ jobs:
             alsa-lib-dev \
             pulseaudio-dev \
             fontconfig-dev
+      - name: Build Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
           scons -C godot platform=linuxbsd production=yes target=editor
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
