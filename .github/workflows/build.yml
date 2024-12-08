@@ -36,6 +36,7 @@ jobs:
           apk add --no-cache \
             git \
             zip \
+            tar \
             scons \
             pkgconf \
             gcc \
