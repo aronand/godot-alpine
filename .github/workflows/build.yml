@@ -30,6 +30,7 @@ jobs:
             git \
             zip \
             tar \
+            zstd \
       - name: Cache Godot
         id: cache-godot
         uses: actions/cache@v4
