@@ -52,6 +52,7 @@ jobs:
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
         shell: alpine.sh --root {0}
       - name: Zip Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           cd godot/bin/
           zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}
