@@ -27,6 +27,7 @@ jobs:
           key: ${{ env.CACHE_GODOT }}
       - name: Set up latest Alpine Linux
         uses: jirutka/setup-alpine@v1
+        if: steps.cache-godot.outputs.cache-hit != 'true'
       - name: Build Godot on Alpine chroot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
