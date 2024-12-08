@@ -35,7 +35,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Install dependencies
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -77,7 +77,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -99,7 +99,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Unzip godot
         run: unzip ./godot_${{ github.event.inputs.version }}.zip
