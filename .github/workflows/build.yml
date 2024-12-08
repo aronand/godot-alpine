@@ -49,7 +49,7 @@ jobs:
             pulseaudio-dev \
             fontconfig-dev
           git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
-          scons -C godot platform=linuxbsd production=yes target=editor
+          scons -C godot platform=linuxbsd production=yes target=editor udev=no
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
         shell: alpine.sh --root {0}
       - name: Zip Godot
