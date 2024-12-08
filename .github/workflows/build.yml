@@ -76,21 +76,24 @@ jobs:
           body: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
           tag_name: v${{ github.event.inputs.version }}
           files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
-  # docker:
-  #   if: github.event.inputs.docker_tag != ''
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Cache Godot
-  #       id: cache-godot
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: ${{ env.GODOT_FILENAME }}
-  #         key: ${{ env.CACHE_GODOT }}
-  #     - name: Login
-  #       run: docker login -u ${{ secrets.dockerhub_username }} -p '${{ secrets.dockerhub_password }}'
-  #     - name: Build container
-  #       run: docker build -t xaltaq/godot-alpine:${{ github.event.inputs.docker_tag }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
-  #     - name: Push image to Docker Hub
-  #       run: docker push xaltaq/godot-alpine:${{ github.event.inputs.docker_tag }}
+  docker:
+    if: github.event.inputs.docker_tag != ''
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      dockerhub_username: ${{ secrets.dockerhub_username }}
+      dockerhub_password: ${{ secrets.dockerhub_password}}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GODOT_FILENAME }}
+          key: ${{ env.CACHE_GODOT }}
+      - name: Login
+        run: docker login -u "$dockerhub_username" -p "$dockerhub_password"
+      - name: Build container
+        run: docker build -t aronand/godot-alpine:${{ github.event.inputs.docker_tag }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+      - name: Push image to Docker Hub
+        run: docker push aronand/godot-alpine:${{ github.event.inputs.docker_tag }}
