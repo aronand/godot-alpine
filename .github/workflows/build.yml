@@ -8,7 +8,7 @@ on:
       scons-args:
         description: 'Arguments passed to scons to build the editor'
         required: true
-        default: 'platform=linuxbsd production=yes target=editor udev=no execinfo=no'
+        default: 'platform=linuxbsd production=yes target=editor execinfo=no'
       release:
         description: 'Add binary to releases'
         type: boolean
