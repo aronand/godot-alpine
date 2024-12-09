@@ -21,7 +21,7 @@ run-name: ${{ github.workflow }} ${{ github.event.inputs.version }}
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     container:
       image: alpine:latest
     defaults:
