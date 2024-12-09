@@ -58,7 +58,7 @@ jobs:
             eudev-dev \
             alsa-lib-dev \
             pulseaudio-dev \
-            fontconfig-dev
+            fontconfig-dev \
       - name: Build Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
@@ -86,8 +86,8 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
-          body: Godot v${{ github.event.inputs.version }} headless for Alpine Linux
+          name: Godot v${{ github.event.inputs.version }} for Alpine Linux
+          body: Godot v${{ github.event.inputs.version }} for Alpine Linux
           tag_name: v${{ github.event.inputs.version }}
           files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
   docker:
