@@ -2,22 +2,26 @@ name: Build & Publish Godot
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version of Godot to build'
+      version-tag:
+        description: 'Version tag shown in releases and in Docker Hub'
+        required: true
+      build-commit:
+        description: 'Commit, tag, or branch to build'
         required: true
       scons-args:
         description: 'Arguments passed to scons to build the editor'
         required: true
         default: 'platform=linuxbsd production=yes target=editor execinfo=no'
-      release:
+      release-binary:
         description: 'Add binary to releases'
         type: boolean
-      docker_tag:
-        description: 'Tag to set to Docker image; set to empty to not push to Docker Hub'
+      publish-image:
+        description: 'Push image to Docker Hub'
+        type: boolean
 env:
-  CACHE_GODOT: cache_godot_${{ github.event.inputs.version }}
+  CACHE_GODOT: cache_godot_${{ github.event.inputs.version-tag }}
   GODOT_FILENAME: godot
-run-name: ${{ github.workflow }} ${{ github.event.inputs.version }}
+run-name: ${{ github.workflow }} ${{ github.event.inputs.version-tag }}
 
 jobs:
   build:
@@ -39,7 +43,7 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Install dependencies
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -62,18 +66,21 @@ jobs:
       - name: Build Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/godotengine/godot.git -b ${{ github.event.inputs.version }}-stable --depth 1
+          git clone https://github.com/godotengine/godot.git
+          cd godot
+          git checkout ${{ github.event.inputs.build-commit }}
+          cd -
           scons -C godot ${{ github.event.inputs.scons-args }}
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
       - name: Zip Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           cd godot/bin/
-          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}
+          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}
           cd -
-          mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
   release:
-    if: github.event.inputs.release == 'true'
+    if: github.event.inputs.release-binary == 'true'
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -81,35 +88,35 @@ jobs:
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Godot v${{ github.event.inputs.version }} for Alpine Linux
-          body: Godot v${{ github.event.inputs.version }} for Alpine Linux
-          tag_name: v${{ github.event.inputs.version }}
-          files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          name: Godot v${{ github.event.inputs.version-tag }} for Alpine Linux
+          body: Godot v${{ github.event.inputs.version-tag }} for Alpine Linux
+          tag_name: v${{ github.event.inputs.version-tag }}
+          files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
   docker:
-    if: github.event.inputs.docker_tag != ''
+    if: github.event.inputs.publish-image == 'true'
     needs: build
     runs-on: ubuntu-latest
     env:
       dockerhub_username: ${{ secrets.dockerhub_username }}
-      dockerhub_password: ${{ secrets.dockerhub_password}}
+      dockerhub_password: ${{ secrets.dockerhub_password }}
     steps:
       - uses: actions/checkout@v2
       - name: Cache Godot
         id: cache-godot
         uses: actions/cache@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version }}.zip
+          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
           key: ${{ env.CACHE_GODOT }}
       - name: Unzip godot
-        run: unzip ./godot_${{ github.event.inputs.version }}.zip
+        run: unzip ./godot_${{ github.event.inputs.version-tag }}.zip
       - name: Login
         run: docker login -u "$dockerhub_username" -p "$dockerhub_password"
       - name: Build container
-        run: docker build -t aronand/godot-alpine:${{ github.event.inputs.docker_tag }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+        run: docker build -t aronand/godot-alpine:${{ github.event.inputs.version-tag }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
       - name: Push image to Docker Hub
-        run: docker push aronand/godot-alpine:${{ github.event.inputs.docker_tag }}
+        run: docker push aronand/godot-alpine:${{ github.event.inputs.version-tag }}
