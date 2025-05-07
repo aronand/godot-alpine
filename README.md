@@ -14,14 +14,12 @@ in the terminal.
 
 ## Known issues
 
-### Godot Jolt
+### Godot Jolt addon (Godot <4.4)
 
-Godot Jolt addon currently does not work with Alpine, as it's linked against `glibc`.
+Godot Jolt addon does not work with Alpine, as it's linked against `glibc`.
 Installing `gcompat` or `alpine-pkg-glibc` does not seem to remedy the issue either.
 
-This issue may resolve itself once Jolt is integrated into Godot as the official/default physics engine.
-
-Note that this same issue may also impact other addons that rely on `glibc`. 
+Note that this issue may also impact other addons that rely on `glibc`. 
 
 ## Acknowledgments
 
