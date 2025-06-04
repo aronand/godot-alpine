@@ -28,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: alpine:latest
+    outputs:
+      godot-version: ${{ steps.godot-version.outputs.version }}
     defaults:
       run:
         shell: ash {0}
@@ -75,7 +77,12 @@ jobs:
           cd -
           scons -C godot ${{ github.event.inputs.scons-args }}
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
-          godot/bin/${{ env.GODOT_FILENAME }} --version
+
+      - name: Store Godot version in outputs
+        id: godot-version
+        run: |
+          GODOT_VERSION=$(godot/bin/${{ env.GODOT_FILENAME }} --version)
+          echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Zip Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -84,6 +91,13 @@ jobs:
           zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}
           cd -
           mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
+
+  print-godot-version:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Godot version: ${{ needs.build.outputs.godot-version }}"
 
   release:
     if: github.event.inputs.release-binary == 'true'
