@@ -111,9 +111,9 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux"
-          body: "Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux"
-          tag_name: "v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}"
+          name: Godot v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}" for Alpine Linux
+          body: Godot v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}" for Alpine Linux
+          tag_name: v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}"
           files: ${{ env.GODOT_FILENAME }}.zip
 
   # TODO: Fix push, verify that the -latest-patch tag is getting applied
