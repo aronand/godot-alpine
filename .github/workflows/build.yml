@@ -1,5 +1,5 @@
 name: Build & Publish Godot
-run-name: "${{ github.workflow }}"
+run-name: "Build${{ inputs.release-binary && ', release'}}${{ inputs.publish-image && ', publish'}}"
 on:
   workflow_dispatch:
     inputs:
@@ -69,9 +69,16 @@ jobs:
       - name: Get Godot version
         id: godot-version
         run: |
-          GODOT_VERSION=$(godot/bin/${{ env.GODOT_FILENAME }} --version | grep -o "[[:digit:]].[[:digit:]].[[:digit:]]")
-          GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "[[:digit:]].[[:digit:]]")
-          echo $GODOT_VERSION
+          echo "Godot version: $(godot/bin/${{ env.GODOT_FILENAME }} --version)"
+
+          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)(\.[[:alnum:]]*\.[[:alpha:]]*\.[[:alnum:]]*)$/\1/')
+          if [[ -z "$GODOT_VERSION" ]]; then
+            echo "::error::Failed to match Godot version, check that the regex can match the version string."
+            exit 1
+          fi
+
+          GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
+
           echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
 
