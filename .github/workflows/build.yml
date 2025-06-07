@@ -1,5 +1,5 @@
 name: Build & Publish Godot
-run-name: "Build${{ inputs.release-binary && ', release'}}${{ inputs.publish-image && ', publish'}}"
+run-name: "Build ${{ inputs.build-commit }} ${{ inputs.release-binary && ', release' || '' }}${{ inputs.publish-image && ', publish' || ''}}"
 on:
   workflow_dispatch:
     inputs:
@@ -27,6 +27,7 @@ jobs:
     outputs:
       godot-version: ${{ steps.godot-version.outputs.version }}
       godot-major-minor-version: ${{ steps.godot-version.outputs.major-minor-version }}
+      release-type: ${{ steps.godot-version.outputs.release_type }}
     defaults:
       run:
         shell: ash {0}
@@ -71,16 +72,18 @@ jobs:
         run: |
           echo "Godot version: $(godot/bin/${{ env.GODOT_FILENAME }} --version)"
 
-          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)(\.[[:alnum:]]*\.[[:alpha:]]*\.[[:alnum:]]*)$/\1/')
+          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]]*\.[[:alnum:]]*/\1/')
           if [[ -z "$GODOT_VERSION" ]]; then
             echo "::error::Failed to match Godot version, check that the regex can match the version string."
             exit 1
           fi
 
           GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
+          RELEASE_TYPE=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]]*\.[[:alnum:]]*/\2/')
 
           echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release-type=$RELEASE_TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Zip Godot
         run: |
@@ -116,9 +119,9 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Godot v${{ needs.build.outputs.godot-version }} for Alpine Linux
-          body: Godot v${{ needs.build.outputs.godot-version }} for Alpine Linux
-          tag_name: v${{ needs.build.outputs.godot-version }}
+          name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          body: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          tag_name: v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
           files: ${{ env.GODOT_FILENAME }}.zip
 
   docker:
@@ -143,8 +146,10 @@ jobs:
 
       - name: Build and tag image
         run: |
-          docker build -t aronand/godot-alpine:${{ needs.build.outputs.godot-version }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
-          docker image tag aronand/godot-alpine:${{ needs.build.outputs.godot-major-minor-version}}-latest-patch
+          docker build -t aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+          if [ "${{ needs.build.outputs.release-type }}" == "stable" ]; then
+            docker image tag aronand/godot-alpine:${{ needs.build.outputs.godot-major-minor-version}}-latest-patch
+          fi
 
       - name: Push image to Docker Hub
         run: docker push aronand/godot-alpine:${{ needs.build.outputs.godot-version }}
