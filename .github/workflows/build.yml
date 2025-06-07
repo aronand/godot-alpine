@@ -72,14 +72,14 @@ jobs:
         run: |
           echo "Godot version: $(godot/bin/${{ env.GODOT_FILENAME }} --version)"
 
-          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]]*\.[[:alnum:]]*/\1/')
+          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\1/')
           if [[ -z "$GODOT_VERSION" ]]; then
             echo "::error::Failed to match Godot version, check that the regex can match the version string."
             exit 1
           fi
 
           GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
-          RELEASE_TYPE=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]]*\.[[:alnum:]]*/\2/')
+          RELEASE_TYPE=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\2/')
 
           echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
