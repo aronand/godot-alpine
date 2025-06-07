@@ -99,14 +99,6 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  print-godot-version:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "Godot version: ${{ needs.build.outputs.godot-version }}"
-          echo "Godot major-minor version: ${{ needs.build.outputs.godot-major-minor-version }}"
-
   release:
     if: github.event.inputs.release-binary == 'true'
     needs: build
