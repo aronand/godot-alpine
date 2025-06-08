@@ -10,6 +10,9 @@ on:
         description: 'Arguments passed to scons to build the editor'
         required: true
         default: 'platform=linuxbsd production=yes target=editor execinfo=no'
+      use-cached-build:
+        description: 'Use cached build'
+        type: boolean
       release-binary:
         description: 'Add binary to releases'
         type: boolean
@@ -41,6 +44,7 @@ jobs:
             zstd \
 
       - name: Install dependencies
+        if: github.event.inputs.use-cached-build == 'false'
         run: |
           apk add --no-cache \
             scons \
@@ -59,6 +63,7 @@ jobs:
             fontconfig-dev \
 
       - name: Build Godot
+        if: github.event.inputs.use-cached-build == 'false'
         run: |
           git clone https://github.com/godotengine/godot.git
           cd godot
@@ -85,17 +90,10 @@ jobs:
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
           echo "release-type=$RELEASE_TYPE" >> "$GITHUB_OUTPUT"
 
-      - name: Zip Godot
-        run: |
-          cd godot/bin/
-          zip ${{ env.GODOT_FILENAME }}.zip ${{ env.GODOT_FILENAME }}
-          cd -
-          mv godot/bin/${{ env.GODOT_FILENAME }}.zip ${{ env.GODOT_FILENAME }}.zip
-
       - uses: actions/upload-artifact@v4
         with:
           name: "Godot ${{ steps.godot-version.outputs.version }}"
-          path: ${{ env.GODOT_FILENAME }}.zip
+          path: "godot/bin/${{ env.GODOT_FILENAME }}"
           if-no-files-found: error
           retention-days: 3
 
@@ -111,10 +109,10 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Godot v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}" for Alpine Linux
-          body: Godot v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}" for Alpine Linux
-          tag_name: v"${{ needs.build.outputs.godot-version }}"-"${{ needs.build.outputs.release-type }}"
-          files: ${{ env.GODOT_FILENAME }}.zip
+          name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          body: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          tag_name: v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
+          files: ${{ env.GODOT_FILENAME }}
 
   # TODO: Fix push, verify that the -latest-patch tag is getting applied
   docker:
