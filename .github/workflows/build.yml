@@ -43,8 +43,17 @@ jobs:
             tar \
             zstd \
 
+      - name: Restore cached build
+        id: restore
+        if: github.event.inputs.use-cached-build == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: "godot/bin/${{ env.GODOT_FILENAME }}"
+          key: "godot_${{ github.event.inputs.build-commit }}"
+
+
       - name: Install dependencies
-        if: github.event.inputs.use-cached-build == 'false'
+        if: github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false'
         run: |
           apk add --no-cache \
             scons \
@@ -63,7 +72,7 @@ jobs:
             fontconfig-dev \
 
       - name: Build Godot
-        if: github.event.inputs.use-cached-build == 'false'
+        if: github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false'
         run: |
           git clone https://github.com/godotengine/godot.git
           cd godot
@@ -71,6 +80,13 @@ jobs:
           cd -
           scons -C godot ${{ github.event.inputs.scons-args }}
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
+
+      - name: Cache Godot
+        if: github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false'
+        uses: actions/cache/save@v4
+        with:
+          path: "godot/bin/${{ env.GODOT_FILENAME }}"
+          key: "godot_${{ github.event.inputs.build-commit }}"
 
       - name: Get Godot version
         id: godot-version
