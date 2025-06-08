@@ -52,7 +52,6 @@ jobs:
           path: "${{ env.GODOT_FILENAME }}"
           key: "godot_${{ github.event.inputs.build-commit }}"
 
-
       - name: Install dependencies
         if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         run: |
@@ -79,7 +78,8 @@ jobs:
           cd ${{ env.GODOT_REPO}}
           git checkout ${{ github.event.inputs.build-commit }}
           scons -C . ${{ github.event.inputs.scons-args }}
-          mv ./bin/godot.linuxbsd.editor.x86_64 ~/${{ env.GODOT_FILENAME }}
+          cd -
+          mv "${{ env.GODOT_REPO }}/bin/godot.linuxbsd.editor.x86_64" "${{ env.GODOT_FILENAME }}"
 
       - name: Cache Godot
         if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
@@ -90,6 +90,7 @@ jobs:
 
       - name: Get Godot version
         id: godot-version
+        # TODO: Experiment with ripgrep as it seems to support capture groups
         run: |
           echo "Godot version: $(./${{ env.GODOT_FILENAME }} --version)"
 
