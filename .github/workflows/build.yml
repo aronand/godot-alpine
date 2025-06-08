@@ -53,7 +53,7 @@ jobs:
 
 
       - name: Install dependencies
-        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false' }}
+        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'true' }}
         run: |
           apk add --no-cache \
             scons \
@@ -72,7 +72,7 @@ jobs:
             fontconfig-dev \
 
       - name: Build Godot
-        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false' }}
+        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'true' }}
         run: |
           git clone https://github.com/godotengine/godot.git
           cd godot
@@ -82,7 +82,7 @@ jobs:
           mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
 
       - name: Cache Godot
-        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'false' }}
+        if: ${{ github.event.inputs.use-cached-build == 'false' && steps.restore.outputs.cache-hit == 'true' }}
         uses: actions/cache/save@v4
         with:
           path: "godot/bin/${{ env.GODOT_FILENAME }}"
