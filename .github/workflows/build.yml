@@ -20,6 +20,7 @@ on:
         description: 'Push image to Docker Hub'
         type: boolean
 env:
+  GODOT_REPO: godot-repo
   GODOT_FILENAME: godot
 
 jobs:
@@ -48,7 +49,7 @@ jobs:
         if: github.event.inputs.use-cached-build == 'true'
         uses: actions/cache/restore@v4
         with:
-          path: "godot/bin/${{ env.GODOT_FILENAME }}"
+          path: "${{ env.GODOT_FILENAME }}"
           key: "godot_${{ github.event.inputs.build-commit }}"
 
 
@@ -74,33 +75,32 @@ jobs:
       - name: Build Godot
         if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/godotengine/godot.git
-          cd godot
+          git clone https://github.com/godotengine/godot.git ${{ env.GODOT_REPO}}
+          cd ${{ env.GODOT_REPO}}
           git checkout ${{ github.event.inputs.build-commit }}
-          cd -
-          scons -C godot ${{ github.event.inputs.scons-args }}
-          mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
+          scons -C . ${{ github.event.inputs.scons-args }}
+          mv ./bin/godot.linuxbsd.editor.x86_64 ~/${{ env.GODOT_FILENAME }}
 
       - name: Cache Godot
         if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: "godot/bin/${{ env.GODOT_FILENAME }}"
+          path: "${{ env.GODOT_FILENAME }}"
           key: "godot_${{ github.event.inputs.build-commit }}"
 
       - name: Get Godot version
         id: godot-version
         run: |
-          echo "Godot version: $(godot/bin/${{ env.GODOT_FILENAME }} --version)"
+          echo "Godot version: $(./${{ env.GODOT_FILENAME }} --version)"
 
-          GODOT_VERSION=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\1/')
+          GODOT_VERSION=$(echo $(./${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\1/')
           if [[ -z "$GODOT_VERSION" ]]; then
             echo "::error::Failed to match Godot version, check that the regex can match the version string."
             exit 1
           fi
 
           GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
-          RELEASE_TYPE=$(echo $(godot/bin/${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\2/')
+          RELEASE_TYPE=$(echo $(./${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\2/')
 
           echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
@@ -109,7 +109,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: "Godot ${{ steps.godot-version.outputs.version }}"
-          path: "godot/bin/${{ env.GODOT_FILENAME }}"
+          path: "${{ env.GODOT_FILENAME }}"
           if-no-files-found: error
           retention-days: 3
 
