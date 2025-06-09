@@ -72,7 +72,7 @@ jobs:
             fontconfig-dev \
 
       - name: Install dependencies (cached build only)
-        if: github.event.inputs.use-cached-build == 'true' || steps.restore.outputs.cache-hit == 'true'
+        if: github.event.inputs.use-cached-build == 'true' && steps.restore.outputs.cache-hit == 'true'
         # NOTE: These need to match with the Dockerfile
         run: |
           apk add --no-cache \
