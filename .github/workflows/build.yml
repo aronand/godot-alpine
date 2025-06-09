@@ -53,8 +53,7 @@ jobs:
           key: "godot_${{ github.event.inputs.build-commit }}"
 
       - name: Install dependencies
-        # NOTE: Check Dockerfile for libraries that need to be present at minimum
-        # for Godot to work is using a cached build
+        if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         run: |
           apk add --no-cache \
             scons \
@@ -71,6 +70,14 @@ jobs:
             alsa-lib-dev \
             pulseaudio-dev \
             fontconfig-dev \
+
+      - name: Install dependencies (cached build only)
+        if: github.event.inputs.use-cached-build == 'true' || steps.restore.outputs.cache-hit == 'true'
+        # NOTE: These need to match with the Dockerfile
+        run: |
+          apk add --no-cache \
+            fontconfig \
+            eudev-dev
 
       - name: Build Godot
         if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
@@ -103,6 +110,8 @@ jobs:
 
           GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
           RELEASE_TYPE=$(echo $(./${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\2/')
+
+          echo "Release type: $RELEASE_TYPE"
 
           echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
           echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
