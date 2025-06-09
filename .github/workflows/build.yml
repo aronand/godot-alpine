@@ -53,7 +53,8 @@ jobs:
           key: "godot_${{ github.event.inputs.build-commit }}"
 
       - name: Install dependencies
-        if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
+        # NOTE: Check Dockerfile for libraries that need to be present at minimum
+        # for Godot to work is using a cached build
         run: |
           apk add --no-cache \
             scons \
