@@ -1,10 +1,8 @@
 name: Build & Publish Godot
+run-name: "Build ${{ inputs.build-commit }} ${{ inputs.release-binary && ', release' || '' }}${{ inputs.publish-image && ', publish' || ''}}"
 on:
   workflow_dispatch:
     inputs:
-      version-tag:
-        description: 'Version tag shown in releases and in Docker Hub'
-        required: true
       build-commit:
         description: 'Commit, tag, or branch to build'
         required: true
@@ -12,6 +10,9 @@ on:
         description: 'Arguments passed to scons to build the editor'
         required: true
         default: 'platform=linuxbsd production=yes target=editor execinfo=no'
+      use-cached-build:
+        description: 'Use cached build'
+        type: boolean
       release-binary:
         description: 'Add binary to releases'
         type: boolean
@@ -19,15 +20,18 @@ on:
         description: 'Push image to Docker Hub'
         type: boolean
 env:
-  CACHE_GODOT: cache_godot_${{ github.event.inputs.version-tag }}
+  GODOT_REPO: godot-repo
   GODOT_FILENAME: godot
-run-name: ${{ github.workflow }} ${{ github.event.inputs.version-tag }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
       image: alpine:latest
+    outputs:
+      godot-version: ${{ steps.godot-version.outputs.version }}
+      godot-major-minor-version: ${{ steps.godot-version.outputs.major-minor-version }}
+      release-type: ${{ steps.godot-version.outputs.release-type }}
     defaults:
       run:
         shell: ash {0}
@@ -39,14 +43,17 @@ jobs:
             zip \
             tar \
             zstd \
-      - name: Cache Godot
-        id: cache-godot
-        uses: actions/cache@v4
+
+      - name: Restore cached build
+        id: restore
+        if: github.event.inputs.use-cached-build == 'true'
+        uses: actions/cache/restore@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
-          key: ${{ env.CACHE_GODOT }}
+          path: "${{ env.GODOT_FILENAME }}"
+          key: "godot_${{ github.event.inputs.build-commit }}"
+
       - name: Install dependencies
-        if: steps.cache-godot.outputs.cache-hit != 'true'
+        if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         run: |
           apk add --no-cache \
             scons \
@@ -63,40 +70,81 @@ jobs:
             alsa-lib-dev \
             pulseaudio-dev \
             fontconfig-dev \
+
+      - name: Install dependencies (cached build only)
+        if: github.event.inputs.use-cached-build == 'true' && steps.restore.outputs.cache-hit == 'true'
+        # NOTE: These need to match with the Dockerfile
+        run: |
+          apk add --no-cache \
+            fontconfig \
+            eudev-dev
+
       - name: Build Godot
-        if: steps.cache-godot.outputs.cache-hit != 'true'
+        if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/godotengine/godot.git
-          cd godot
+          git clone https://github.com/godotengine/godot.git ${{ env.GODOT_REPO}}
+          cd ${{ env.GODOT_REPO}}
           git checkout ${{ github.event.inputs.build-commit }}
+          scons -C . ${{ github.event.inputs.scons-args }}
           cd -
-          scons -C godot ${{ github.event.inputs.scons-args }}
-          mv godot/bin/godot.linuxbsd.editor.x86_64 godot/bin/${{ env.GODOT_FILENAME }}
-      - name: Zip Godot
-        if: steps.cache-godot.outputs.cache-hit != 'true'
+          mv "${{ env.GODOT_REPO }}/bin/godot.linuxbsd.editor.x86_64" "${{ env.GODOT_FILENAME }}"
+
+      - name: Cache Godot
+        if: github.event.inputs.use-cached-build == 'false' || steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: "${{ env.GODOT_FILENAME }}"
+          key: "godot_${{ github.event.inputs.build-commit }}"
+
+      - name: Get Godot version
+        id: godot-version
+        # TODO: Experiment with ripgrep as it seems to support capture groups
         run: |
-          cd godot/bin/
-          zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}
-          cd -
-          mv godot/bin/${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
+          echo "Godot version: $(./${{ env.GODOT_FILENAME }} --version)"
+
+          GODOT_VERSION=$(echo $(./${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\1/')
+          if [[ -z "$GODOT_VERSION" ]]; then
+            echo "::error::Failed to match Godot version, check that the regex can match the version string."
+            exit 1
+          fi
+
+          GODOT_MAJOR_MINOR_VERSION=$(echo $GODOT_VERSION | grep -o "^[[:digit:]]\.[[:digit:]]")
+          RELEASE_TYPE=$(echo $(./${{ env.GODOT_FILENAME }} --version) | sed -E 's/^(.*)\.([[:alnum:]]*)\.[[:alpha:]\_]*\.[[:alnum:]]*/\2/')
+
+          echo "Release type: $RELEASE_TYPE"
+
+          echo "version=$GODOT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "major-minor-version=$GODOT_MAJOR_MINOR_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release-type=$RELEASE_TYPE" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "Godot ${{ steps.godot-version.outputs.version }}"
+          path: "${{ env.GODOT_FILENAME }}"
+          if-no-files-found: error
+          retention-days: 3
+
   release:
     if: github.event.inputs.release-binary == 'true'
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Cache Godot
-        id: cache-godot
-        uses: actions/cache@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
-          key: ${{ env.CACHE_GODOT }}
+          name: "Godot ${{ needs.build.outputs.godot-version }}"
+
+      - name: Zip binary
+        run: zip ${{ env.GODOT_FILENAME }}-${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}.zip ${{ env.GODOT_FILENAME }}
+
       - name: Release
-        uses: softprops/action-gh-release@v2
+        # TODO: Update version when 2.3.0 is fixed (see: https://github.com/softprops/action-gh-release/issues/628)
+        uses: softprops/action-gh-release@v2.2.2
         with:
-          name: Godot v${{ github.event.inputs.version-tag }} for Alpine Linux
-          body: Godot v${{ github.event.inputs.version-tag }} for Alpine Linux
-          tag_name: v${{ github.event.inputs.version-tag }}
-          files: ${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
+          name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          body: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
+          tag_name: v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
+          files: ${{ env.GODOT_FILENAME }}-${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}.zip
+
   docker:
     if: github.event.inputs.publish-image == 'true'
     needs: build
@@ -105,18 +153,22 @@ jobs:
       dockerhub_username: ${{ secrets.dockerhub_username }}
       dockerhub_password: ${{ secrets.dockerhub_password }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Cache Godot
-        id: cache-godot
-        uses: actions/cache@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
         with:
-          path: ./${{ env.GODOT_FILENAME }}_${{ github.event.inputs.version-tag }}.zip
-          key: ${{ env.CACHE_GODOT }}
-      - name: Unzip godot
-        run: unzip ./godot_${{ github.event.inputs.version-tag }}.zip
+          name: "Godot ${{ needs.build.outputs.godot-version }}"
+
       - name: Login
         run: docker login -u "$dockerhub_username" -p "$dockerhub_password"
-      - name: Build container
-        run: docker build -t aronand/godot-alpine:${{ github.event.inputs.version-tag }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+
+      - name: Build and tag image
+        run: |
+          IMAGE_TAG=aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
+          docker build -t "$IMAGE_TAG" --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+          if [ "${{ needs.build.outputs.release-type }}" == "stable" ]; then
+            docker image tag $IMAGE_TAG aronand/godot-alpine:${{ needs.build.outputs.godot-major-minor-version}}-latest-patch
+          fi
+
       - name: Push image to Docker Hub
-        run: docker push aronand/godot-alpine:${{ github.event.inputs.version-tag }}
+        run: docker push --all-tags aronand/godot-alpine
