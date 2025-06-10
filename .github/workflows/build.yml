@@ -31,7 +31,7 @@ jobs:
     outputs:
       godot-version: ${{ steps.godot-version.outputs.version }}
       godot-major-minor-version: ${{ steps.godot-version.outputs.major-minor-version }}
-      release-type: ${{ steps.godot-version.outputs.release_type }}
+      release-type: ${{ steps.godot-version.outputs.release-type }}
     defaults:
       run:
         shell: ash {0}
