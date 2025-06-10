@@ -165,9 +165,10 @@ jobs:
 
       - name: Build and tag image
         run: |
-          docker build -t aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
+          IMAGE_TAG=aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
+          docker build -t "$IMAGE_TAG" --build-arg GODOT_FILENAME=${{ env.GODOT_FILENAME }} .
           if [ "${{ needs.build.outputs.release-type }}" == "stable" ]; then
-            docker image tag aronand/godot-alpine:${{ needs.build.outputs.godot-major-minor-version}}-latest-patch
+            docker image tag $IMAGE_TAG aronand/godot-alpine:${{ needs.build.outputs.godot-major-minor-version}}-latest-patch
           fi
 
       - name: Push image to Docker Hub
