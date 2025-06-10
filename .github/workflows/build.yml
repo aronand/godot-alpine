@@ -172,4 +172,4 @@ jobs:
           fi
 
       - name: Push image to Docker Hub
-        run: docker push aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
+        run: docker push --all-tags aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
