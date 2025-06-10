@@ -133,7 +133,15 @@ jobs:
         with:
           name: "Godot ${{ needs.build.outputs.godot-version }}"
 
+      - name: Debugging
+        run: |
+          echo "Godot version: ${{ needs.build.outputs.godot-version }}"
+          echo "Release type: ${{ needs.build.outputs.release-type }}"
+          COMBINED="${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}"
+          echo "$COMBINED"
+
       - name: Release
+        if: ${{ 1 == 2 }}
         uses: softprops/action-gh-release@v2
         with:
           name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
