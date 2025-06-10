@@ -160,9 +160,6 @@ jobs:
         with:
           name: "Godot ${{ needs.build.outputs.godot-version }}"
 
-      - name: Unzip godot
-        run: unzip ./${{ env.GODOT_FILENAME }}.zip
-
       - name: Login
         run: docker login -u "$dockerhub_username" -p "$dockerhub_password"
 
@@ -174,4 +171,4 @@ jobs:
           fi
 
       - name: Push image to Docker Hub
-        run: docker push aronand/godot-alpine:${{ needs.build.outputs.godot-version }}
+        run: docker push aronand/godot-alpine:${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}
