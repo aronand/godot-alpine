@@ -137,7 +137,8 @@ jobs:
         run: zip ${{ env.GODOT_FILENAME }}-${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}.zip ${{ env.GODOT_FILENAME }}
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        # TODO: Update version when 2.3.0 is fixed (see: https://github.com/softprops/action-gh-release/issues/628)
+        uses: softprops/action-gh-release@v2.2.2
         with:
           name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
           body: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
