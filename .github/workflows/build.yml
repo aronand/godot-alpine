@@ -142,8 +142,7 @@ jobs:
 
       - name: Release
         if: github.event.inputs.dry-run == 'false'
-        # TODO: Update version when 2.3.0 is fixed (see: https://github.com/softprops/action-gh-release/issues/628)
-        uses: softprops/action-gh-release@v2.2.2
+        uses: softprops/action-gh-release@v2
         with:
           name: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
           body: Godot v${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }} for Alpine Linux
