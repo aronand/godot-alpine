@@ -19,6 +19,10 @@ on:
       publish-image:
         description: 'Push image to Docker Hub'
         type: boolean
+      dry-run:
+        description: Dry run (skip release creation and pushing to Docker Hub)
+        type: boolean
+        default: false
 env:
   GODOT_REPO: godot-repo
   GODOT_FILENAME: godot
@@ -137,6 +141,7 @@ jobs:
         run: zip ${{ env.GODOT_FILENAME }}-${{ needs.build.outputs.godot-version }}-${{ needs.build.outputs.release-type }}.zip ${{ env.GODOT_FILENAME }}
 
       - name: Release
+        if: github.event.inputs.dry-run == 'false'
         # TODO: Update version when 2.3.0 is fixed (see: https://github.com/softprops/action-gh-release/issues/628)
         uses: softprops/action-gh-release@v2.2.2
         with:
@@ -154,6 +159,10 @@ jobs:
       dockerhub_password: ${{ secrets.dockerhub_password }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Dockerfile
+          sparse-checkout-cone-mode: false
 
       - uses: actions/download-artifact@v4
         with:
@@ -171,4 +180,5 @@ jobs:
           fi
 
       - name: Push image to Docker Hub
+        if: github.event.inputs.dry-run == 'false'
         run: docker push --all-tags aronand/godot-alpine
