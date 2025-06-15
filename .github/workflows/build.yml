@@ -47,6 +47,7 @@ jobs:
             zip \
             tar \
             zstd \
+            ripgrep \
 
       - name: Restore cached build
         id: restore
